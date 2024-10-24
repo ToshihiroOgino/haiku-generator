@@ -1,0 +1,9 @@
+*.code-workspace
+.vscode/
+.local/
+
+__pycache__/
+
+*.html
+
+.venv/
