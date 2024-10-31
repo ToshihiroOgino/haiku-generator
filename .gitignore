@@ -1,9 +1,6 @@
 *.code-workspace
 .vscode/
-.local/
 
 __pycache__/
 
 resource/
-
-.venv/
