@@ -4,6 +4,6 @@
 
 __pycache__/
 
-*.html
+resource/
 
 .venv/
