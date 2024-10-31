@@ -72,5 +72,7 @@ if __name__ == "__main__":
     import json
 
     data = asyncio.run(extract_haiku(verbose=True))
-    data_str = json.dumps(data, indent=2, ensure_ascii=False)
+    data_str = json.dumps(data, indent=4, ensure_ascii=False)
+    if not data_str.endswith("\n"):
+        data_str += "\n"
     save_to_file("haiku.json", data_str)
