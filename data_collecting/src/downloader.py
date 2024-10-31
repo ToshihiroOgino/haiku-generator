@@ -48,5 +48,7 @@ def __download_haiku_page(verbose=False):
 if __name__ == "__main__":
     if input("Do you want to download the data? (y/n): ") != "y":
         exit()
+    print("Downloading kigo list pages...")
     __download_kigo_list()
+    print("Downloading haiku list pages...")
     __download_haiku_page()
