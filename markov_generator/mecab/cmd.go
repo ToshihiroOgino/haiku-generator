@@ -23,7 +23,6 @@ func CreateInstance() *MeCab {
 	// TODO: 変えられるようにする
 	homeDir, _ := os.UserHomeDir()
 	dicPath := homeDir + "/.local/share/mecab/dic/unidic-waka"
-	// dicPath := "/mnt/c/Users/tonig/dev/class/NaturalLangProc/markov_generator/mecab/dict/unidic-waka"
 	cmd := exec.Command("mecab", "-d", dicPath)
 	stdin, _ := cmd.StdinPipe()
 	stdout, _ := cmd.StdoutPipe()
@@ -53,7 +52,7 @@ func (m *MeCab) Exec(text string) []*Morpheme {
 		if line == "EOS" {
 			break
 		}
-		morpheme, err := ParseResult(line)
+		morpheme, err := parseResult(line)
 		if err != nil {
 			slog.Error("failed to parse MeCab result", "line", line, "error", err)
 			return arr
@@ -63,7 +62,7 @@ func (m *MeCab) Exec(text string) []*Morpheme {
 	return arr
 }
 
-func ParseResult(line string) (*Morpheme, error) {
+func parseResult(line string) (*Morpheme, error) {
 	arr := strings.Fields(line)
 	if len(arr) != 2 {
 		err := fmt.Errorf("failed to parse MeCab result (%s)", line)
