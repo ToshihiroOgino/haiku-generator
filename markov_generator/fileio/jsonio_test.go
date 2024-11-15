@@ -2,6 +2,7 @@ package fileio
 
 import (
 	"fmt"
+	"markov_generator/domain"
 	"reflect"
 	"testing"
 )
@@ -15,13 +16,13 @@ func TestLoadHaikuData(t *testing.T) {
 
 	want := HaikuData{
 		"春": {
-			"あ": []string{
+			"あ": []domain.Uta{
 				"あああああいいいいいいいおおおおお",
 				"あいうえおかきくけこさしすせそたち",
 			},
 		},
 		"夏": {
-			"い": []string{
+			"い": []domain.Uta{
 				"いいいい",
 				"いいいいいいい",
 			},
