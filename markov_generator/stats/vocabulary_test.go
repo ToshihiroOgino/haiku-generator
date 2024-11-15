@@ -2,8 +2,9 @@ package stats
 
 import (
 	. "markov_generator/domain"
-	"reflect"
 	"testing"
+
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func TestCreateVocabularySet(t *testing.T) {
@@ -43,10 +44,11 @@ func TestCreateVocabularySet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := CreateVocabularySet(tt.in)
 			want := tt.want
-			if err != nil && !tt.expectErr {
-				t.Errorf("CreateVocabularySet() error = %v, wantErr %v", err, tt.expectErr)
-			} else if !reflect.DeepEqual(got, want) {
-				t.Errorf("CreateVocabularySet() = %v, want %v", got, want)
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, want, got)
 			}
 		})
 	}
