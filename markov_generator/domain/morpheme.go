@@ -11,5 +11,5 @@ type Morpheme struct {
 }
 
 func (m *Morpheme) String() string {
-	return fmt.Sprintf("%s(%s)", m.Surface, m.Reading)
+	return fmt.Sprintf("%s_%s", m.Surface, m.Reading)
 }
