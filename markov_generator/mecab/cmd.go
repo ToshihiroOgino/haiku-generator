@@ -44,20 +44,21 @@ func (m *MeCab) Close() {
 	slog.Info(fmt.Sprintf("MeCab process closed (PID: %d)", m.cmd.Process.Pid))
 }
 
-func (m *MeCab) Exec(text string) []*Morpheme {
+func (m *MeCab) Exec(text string) []Morpheme {
 	fmt.Fprintln(m.stdin, text)
-	arr := []*Morpheme{}
+	arr := []Morpheme{}
 	for m.scanner.Scan() {
 		line := m.scanner.Text()
 		if line == "EOS" {
 			break
 		}
+		// slog.Debug("MeCab result", line)
 		morpheme, err := parseResult(line)
 		if err != nil {
 			slog.Error("failed to parse MeCab result", "line", line, "error", err)
 			return arr
 		}
-		arr = append(arr, morpheme)
+		arr = append(arr, *morpheme)
 	}
 	return arr
 }
@@ -70,7 +71,6 @@ func parseResult(line string) (*Morpheme, error) {
 	}
 	rawWord := arr[0]
 	detail := strings.Split(arr[1], ",")
-
 	if len(detail) < 5 {
 		err := fmt.Errorf("failed to parse MeCab result (%s)", line)
 		return nil, err
