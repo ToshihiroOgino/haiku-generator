@@ -1,7 +1,6 @@
 package stats
 
 import (
-	"fmt"
 	. "markov_generator/domain"
 )
 
@@ -9,20 +8,21 @@ type VocabID int
 
 type Vocabulary struct {
 	ID VocabID
-	Reading
 }
 
-func CreateVocabularySet(data []*Morpheme) (map[Surface]Vocabulary, error) {
+type VocabularySet map[Morpheme]Vocabulary
+
+func CreateVocabularySet(data []*Morpheme) VocabularySet {
 	id := VocabID(0)
-	vocab := map[Surface]Vocabulary{}
+	vocab := VocabularySet{}
 	for _, m := range data {
-		val, duplicate := vocab[m.Surface]
+		_, duplicate := vocab[*m]
 		if !duplicate {
-			vocab[m.Surface] = Vocabulary{ID: id, Reading: m.Reading}
+			vocab[*m] = Vocabulary{ID: id}
 			id++
-		} else if val.Reading != m.Reading {
-			return nil, fmt.Errorf("duplicate surface with different reading: %s -> (%s, %s)", m.Surface, val.Reading, m.Reading)
+		} else {
+			continue
 		}
 	}
-	return vocab, nil
+	return vocab
 }
