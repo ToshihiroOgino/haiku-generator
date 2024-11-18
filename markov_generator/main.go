@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"markov_generator/domain"
 	"markov_generator/fileio"
 	"markov_generator/mecab"
-	"regexp"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/gookit/slog"
 )
@@ -22,27 +21,18 @@ func fn1() {
 	}
 }
 
-func fn3() {
-	str := "「アンタレスの食」てふ過ぎて夜の桜"
-	removeBracket, err := regexp.Compile(`[(（][^)）]+[)）]`)
-	if err != nil {
-		panic(err)
-	}
-	removeJunk, err := regexp.Compile(`[／　]`)
-	if err != nil {
-		panic(err)
-	}
-	str = removeBracket.ReplaceAllString(removeJunk.ReplaceAllString(str, ""), "")
-	fmt.Println(str)
-}
-
-func fn4() {
-	u1 := domain.Uta("帰らなんいざ草の庵は春の風　（学校（教師）をやめる）")
-	u2 := domain.Uta("下丸子の30花の天")
-	u3 := domain.Uta("下丸子の花の天")
-	slog.Debug("u1:", u1.GetCleaned())
-	slog.Debug("u2:", u2.IsInvalid())
-	slog.Debug("u3:", u3.IsInvalid())
+func fn2() {
+	str := "あの頃は輝いていた賀状書く"
+	kigo := "賀状"
+	idx := strings.Index(str, kigo)
+	slog.Debug("idx", idx)
+	instance := mecab.CreateInstance()
+	defer instance.Close()
+	str = str[:idx]
+	slog.Debug("str", str)
+	str = "あああ"
+	slog.Debug("len(\"あああ\")", utf8.RuneCountInString(str))
+	// arr := instance.Exec(strings.Trim(str, kigo))
 }
 
 func vocabList() {
@@ -68,6 +58,17 @@ func corpus() {
 	}
 }
 
+func kigoStat() {
+	if data, err := fileio.LoadHaikuData("./fileio/haiku.json"); err != nil {
+		panic(err)
+	} else {
+		s := data.KigoAnalyze()
+		if err := fileio.SaveKigoStat("./fileio/kigo_stat.json", s); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func main() {
-	corpus()
+	kigoStat()
 }

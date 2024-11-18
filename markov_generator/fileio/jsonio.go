@@ -84,3 +84,22 @@ func SaveCorpus(path string, corpus *stats.Corpus) error {
 
 	return nil
 }
+
+func SaveKigoStat(path string, kigoStat *stats.KigoStat) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	slog.Info("saving kigo stat to " + path)
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "\t")
+	err = encoder.Encode(kigoStat)
+	if err != nil {
+		return err
+	}
+	slog.Info("kigo stat saved")
+
+	return nil
+}

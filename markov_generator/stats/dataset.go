@@ -3,6 +3,7 @@ package stats
 import (
 	"markov_generator/domain"
 	"markov_generator/mecab"
+	"strings"
 
 	"github.com/gookit/slog"
 )
@@ -54,4 +55,61 @@ func (h HaikuData) CreateCorpus() *Corpus {
 		}
 	}
 	return corpus
+}
+
+func (h HaikuData) KigoAnalyze() *KigoStat {
+	instance := mecab.CreateInstance()
+	defer instance.Close()
+
+	s := &KigoStat{
+		TotalAverage: 0,
+		Individual:   make(map[domain.Season]([]*KigoInfo)),
+	}
+	numHaiku := 0
+	totalSum := 0
+
+	for season, kigoUtaMap := range h {
+		slog.Infof("analyzing %s's kigo", season)
+		for kigo, utaList := range kigoUtaMap {
+			// 季語に対応する詩がない場合にはスキップ
+			if len(utaList) == 0 {
+				continue
+			}
+			count := 0
+			sum := 0
+			for _, uta := range utaList {
+				if uta.IsInvalid() {
+					continue
+				}
+				utaStr := uta.GetCleaned().String()
+				idx := strings.Index(utaStr, kigo.String())
+				// 季語がひらがなになっていて単純な検索が効かない場合にはスキップ (e.g. 時雨->しぐる)
+				if idx == -1 {
+					continue
+				}
+				// 季語までをMecabで読みに変換
+				morphemes := instance.Exec(utaStr[:idx])
+				pos := 0
+				// 形態素リストの音素数を数える
+				for _, m := range morphemes {
+					pos += m.Surface.Length()
+				}
+				count++
+				sum += pos
+			}
+			// 有効な詩がない場合にもスキップ
+			if count == 0 {
+				continue
+			}
+			s.Individual[season] = append(s.Individual[season], &KigoInfo{
+				Kigo:       kigo,
+				NumHaiku:   count,
+				AveragePos: KigoAveragePos(sum) / KigoAveragePos(count),
+			})
+			numHaiku += count
+			totalSum += sum
+		}
+	}
+	s.TotalAverage = KigoAveragePos(totalSum) / KigoAveragePos(numHaiku)
+	return s
 }
