@@ -58,8 +58,8 @@ func SaveCorpus(path string, corpus *stats.Corpus) error {
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "\t")
-	err = encoder.Encode(corpus)
-	if err != nil {
+
+	if err := encoder.Encode(corpus); err != nil {
 		return err
 	}
 	slog.Info("corpus saved")
@@ -76,8 +76,7 @@ func LoadCorpus(path string) (*stats.Corpus, error) {
 	slog.Info("reading corpus from " + path)
 	decoder := json.NewDecoder(file)
 	var res stats.Corpus
-	err = decoder.Decode(&res)
-	if err != nil {
+	if err := decoder.Decode(&res); err != nil {
 		return nil, err
 	}
 	slog.Info("corpus loaded")
