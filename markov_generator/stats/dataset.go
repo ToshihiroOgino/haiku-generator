@@ -42,9 +42,9 @@ func (h HaikuData) CreateCorpus() *Corpus {
 	instance := mecab.CreateInstance()
 	defer instance.Close()
 	corpus := InitCorpus()
-	for _, season := range h {
+	for season, haikuOnKigo := range h {
 		slog.Infof("creating corpus from %s's haiku", season)
-		for _, kigo := range season {
+		for _, kigo := range haikuOnKigo {
 			for _, uta := range kigo {
 				if uta.IsInvalid() {
 					continue
