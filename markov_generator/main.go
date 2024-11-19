@@ -15,7 +15,7 @@ import (
 func fn1() {
 	instance := mecab.CreateInstance()
 	defer instance.Close()
-	haiku := [...]string{"塵取にはこびて藍を植ゑにけり"}
+	haiku := [...]string{"明日葉や終りのなきものはなし", "明日葉"}
 	for _, h := range haiku {
 		res := instance.Exec(h)
 		// res := instance.Parse(h)
@@ -72,7 +72,7 @@ func kigoStat() {
 	}
 }
 
-func uta() {
+func utaFromBegin() {
 	if corpus, err := fileio.LoadCorpus("./fileio/corpus.json"); err != nil {
 		slog.FatalErr(err)
 	} else {
@@ -80,6 +80,21 @@ func uta() {
 			uta := generator.GenerateFromBegin(corpus)
 			slog.Debug("uta", uta)
 		}
+	}
+}
+
+func utaFromKigo() {
+	corpus, err := fileio.LoadCorpus("./fileio/corpus.json")
+	if err != nil {
+		slog.FatalErr(err)
+	}
+	kigoStat, err := fileio.LoadKigoStat("./fileio/kigo_stat.json")
+	if err != nil {
+		slog.FatalErr(err)
+	}
+	for i := 0; i < 5; i++ {
+		uta := generator.GenerateFromKigo(corpus, kigoStat, "冬田")
+		slog.Debug("uta", uta)
 	}
 }
 
@@ -123,5 +138,5 @@ func small() {
 }
 
 func main() {
-	uta()
+	utaFromKigo()
 }

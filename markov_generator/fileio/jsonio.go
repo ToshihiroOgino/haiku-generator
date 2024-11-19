@@ -101,3 +101,20 @@ func SaveKigoStat(path string, kigoStat *stats.KigoStat) error {
 
 	return nil
 }
+
+func LoadKigoStat(path string) (*stats.KigoStat, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	slog.Info("reading kigo stat from " + path)
+	decoder := json.NewDecoder(file)
+	var res stats.KigoStat
+	err = decoder.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+	slog.Info("kigo stat loaded")
+	return &res, nil
+}
