@@ -3,9 +3,8 @@ package stats
 import "markov_generator/domain"
 
 type VocabID int
-type Count int
-type NextVocab map[VocabID]Count
-type PrevVocab map[VocabID]Count
+type NextVocab map[VocabID]int
+type PrevVocab map[VocabID]int
 type Vocabulary struct {
 	ID   VocabID
 	Next NextVocab

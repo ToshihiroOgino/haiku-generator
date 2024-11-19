@@ -2,7 +2,10 @@ package main
 
 import (
 	"markov_generator/fileio"
+	"markov_generator/generator"
 	"markov_generator/mecab"
+	"math/rand"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -69,6 +72,56 @@ func kigoStat() {
 	}
 }
 
+func uta() {
+	if corpus, err := fileio.LoadCorpus("./fileio/corpus.json"); err != nil {
+		slog.FatalErr(err)
+	} else {
+		for i := 0; i < 5; i++ {
+			uta := generator.GenerateFromBegin(corpus)
+			slog.Debug("uta", uta)
+		}
+	}
+}
+
+func bin() {
+	src := make([]int, 10)
+	for i := 0; i < 10; i++ {
+		src[i] = rand.Intn(30)
+	}
+	slog.Debug("src", src)
+
+	arr := make([]int, len(src))
+	randMax := 0
+	idx := 0
+	for count := range src {
+		randMax += count
+		arr[idx] = randMax
+		idx++
+	}
+	// rand := rand.Intn(randMax)
+	rand := randMax
+	slog.Debug("arr", arr)
+	slog.Debug("randMax", randMax)
+	slog.Debug("rand", rand)
+	idx = sort.Search(len(arr), func(i int) bool {
+		return arr[i] >= rand
+	})
+
+	slog.Debug("idx", idx)
+}
+
+func small() {
+	if data, err := fileio.LoadHaikuData("./fileio/small.json"); err != nil {
+		panic(err)
+	} else {
+		corpus := data.CreateCorpus()
+		// slog.Debug("corpus", corpus)
+		fileio.SaveCorpus("./fileio/small_corpus.json", corpus)
+		uta := generator.GenerateFromBegin(corpus)
+		slog.Debug("uta", uta)
+	}
+}
+
 func main() {
-	kigoStat()
+	uta()
 }

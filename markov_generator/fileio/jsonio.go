@@ -2,7 +2,6 @@ package fileio
 
 import (
 	"encoding/json"
-	"markov_generator/domain"
 	"markov_generator/stats"
 	"os"
 
@@ -57,32 +56,32 @@ func SaveCorpus(path string, corpus *stats.Corpus) error {
 	defer file.Close()
 	slog.Info("saving corpus to " + path)
 
-	type data struct {
-		Surface domain.Surface
-		Reading domain.Reading
-		Next    map[stats.VocabID]stats.Count
-		Prev    map[stats.VocabID]stats.Count
-	}
-
-	corpusEncodable := map[stats.VocabID]data{}
-	for k, v := range corpus.VocabularySet {
-		corpusEncodable[v.ID] = data{
-			Surface: k.Surface,
-			Reading: k.Reading,
-			Next:    v.Next,
-			Prev:    v.Prev,
-		}
-	}
-
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "\t")
-	err = encoder.Encode(corpusEncodable)
+	err = encoder.Encode(corpus)
 	if err != nil {
 		return err
 	}
 	slog.Info("corpus saved")
 
 	return nil
+}
+
+func LoadCorpus(path string) (*stats.Corpus, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	slog.Info("reading corpus from " + path)
+	decoder := json.NewDecoder(file)
+	var res stats.Corpus
+	err = decoder.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+	slog.Info("corpus loaded")
+	return &res, nil
 }
 
 func SaveKigoStat(path string, kigoStat *stats.KigoStat) error {

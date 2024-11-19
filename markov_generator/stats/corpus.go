@@ -1,12 +1,15 @@
 package stats
 
-import "markov_generator/domain"
+import (
+	"encoding/json"
+	"markov_generator/domain"
+)
 
 type Corpus struct {
 	VocabularySet VocabularySet
 	MorphemeList  []*domain.Morpheme
-	bos           *Vocabulary
-	eos           *Vocabulary
+	Bos           *Vocabulary
+	Eos           *Vocabulary
 }
 
 func InitCorpus() *Corpus {
@@ -17,8 +20,8 @@ func InitCorpus() *Corpus {
 
 	var bos = &domain.Morpheme{Surface: "BOS", Reading: "BOS"}
 	var eos = &domain.Morpheme{Surface: "EOS", Reading: "EOS"}
-	c.bos = c.InsertMorpheme(bos)
-	c.eos = c.InsertMorpheme(eos)
+	c.Bos = c.InsertMorpheme(bos)
+	c.Eos = c.InsertMorpheme(eos)
 	return c
 }
 
@@ -46,19 +49,88 @@ func (c *Corpus) GetIDFromMorpheme(m *domain.Morpheme) VocabID {
 	return vocab.ID
 }
 
+func (c *Corpus) GetVocabularyFromID(id VocabID) *Vocabulary {
+	return c.VocabularySet[*c.GetMorphemeFromID(id)]
+}
+
 func (c *Corpus) Update(morphemes []domain.Morpheme) {
-	vocabList := []*Vocabulary{c.bos}
+	vocabList := []*Vocabulary{c.Bos}
 	for _, m := range morphemes {
 		vocab := c.InsertMorpheme(&m)
 		vocabList = append(vocabList, vocab)
 	}
-	vocabList = append(vocabList, c.eos)
+	vocabList = append(vocabList, c.Eos)
 	for i := 1; i < len(vocabList)-1; i++ {
-		prev := vocabList[i-1]
-		vocabList[i].Next[prev.ID]++
-		next := vocabList[i+1]
-		vocabList[i].Prev[next.ID]++
+		if i != 1 {
+			prev := vocabList[i-1]
+			vocabList[i].Prev[prev.ID]++
+		}
+		if i != len(vocabList)-2 {
+			next := vocabList[i+1]
+			vocabList[i].Next[next.ID]++
+		}
 	}
-	c.bos.Next[vocabList[1].ID]++
-	c.eos.Prev[vocabList[len(vocabList)-2].ID]++
+	c.Bos.Next[vocabList[1].ID]++
+	c.Eos.Prev[vocabList[len(vocabList)-2].ID]++
+}
+
+/* ----- For JSON marshalling and unmarshalling ----- */
+type VocabMarshalItem struct {
+	Surface domain.Surface
+	Reading domain.Reading
+	Next    map[VocabID]int
+	Prev    map[VocabID]int
+}
+
+func (c Corpus) MarshalJSON() ([]byte, error) {
+	vocab := make(map[VocabID]VocabMarshalItem)
+	for k, v := range c.VocabularySet {
+		vocab[v.ID] = VocabMarshalItem{
+			Surface: k.Surface,
+			Reading: k.Reading,
+			Next:    v.Next,
+			Prev:    v.Prev,
+		}
+	}
+	return json.Marshal(struct {
+		Vocabulary map[VocabID]VocabMarshalItem
+		BosID      VocabID
+		EosID      VocabID
+	}{
+		Vocabulary: vocab,
+		BosID:      c.Bos.ID,
+		EosID:      c.Eos.ID,
+	})
+}
+
+func (c *Corpus) UnmarshalJSON(data []byte) error {
+	var obj struct {
+		Vocabulary map[VocabID]VocabMarshalItem
+		BosID      VocabID
+		EosID      VocabID
+	}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+	c.VocabularySet = make(VocabularySet)
+	c.MorphemeList = make([]*domain.Morpheme, len(obj.Vocabulary))
+	for id, item := range obj.Vocabulary {
+		morpheme := &domain.Morpheme{
+			Surface: item.Surface,
+			Reading: item.Reading,
+		}
+		vocab := &Vocabulary{
+			ID:   id,
+			Next: item.Next,
+			Prev: item.Prev,
+		}
+		c.VocabularySet[*morpheme] = vocab
+		c.MorphemeList[id] = morpheme
+		if item.Surface == "BOS" {
+			c.Bos = vocab
+		} else if item.Surface == "EOS" {
+			c.Eos = vocab
+		}
+	}
+	return nil
 }
