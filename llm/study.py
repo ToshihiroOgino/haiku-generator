@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from peft import get_peft_model, LoraConfig, TaskType
 from datasets import load_dataset
@@ -9,14 +9,14 @@ from datasets import load_dataset
 LOCAL_MODEL_PATH = "./elyza_model"
 
 # ハイパーパラメータ設定
-BATCH_SIZE = 1024
+BATCH_SIZE = 16
 NUM_EPOCHS = 10
 LEARNING_RATE = 1e-4
-PATIENCE = 5  # Early stopping の許容エポック数
+PATIENCE = 1  # Early stopping の許容エポック数
 
 # モデルとトークナイザの読み込み
 tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_PATH)
-model = AutoModelForCausalLM.from_pretrained(LOCAL_MODEL_PATH, load_in_8bit=True, device_map="auto")
+model = AutoModelForCausalLM.from_pretrained(LOCAL_MODEL_PATH, quantization_config=BitsAndBytesConfig(load_in_8bit=True), device_map="auto")
 
 # LoRA の設定
 lora_config = LoraConfig(
@@ -87,9 +87,8 @@ for epoch in range(NUM_EPOCHS):
         optimizer.step()  # パラメータ更新
         optimizer.zero_grad()  # 勾配のリセット
         
-        # 10ステップごとにLossを表示
-        if step % 10 == 0:
-            print(f"Epoch {epoch}, Step {step}, Loss: {loss.item()}")
+        # 1ステップごとにLossを表示
+        print(f"Epoch {epoch}, Step {step}, Loss: {loss.item()}")
             
         # エポックごとの損失の集計
         epoch_loss += loss.item()
@@ -112,6 +111,6 @@ for epoch in range(NUM_EPOCHS):
     # 学習率スケジューラーで学習率を更新
     scheduler.step(epoch_loss)
 
-# モデルの保存
-model.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
-tokenizer.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
+    # モデルの保存
+    model.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
+    tokenizer.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
