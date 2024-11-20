@@ -9,10 +9,10 @@ from datasets import load_dataset
 LOCAL_MODEL_PATH = "./elyza_model"
 
 # ハイパーパラメータ設定
-BATCH_SIZE = 16
-NUM_EPOCHS = 5
+BATCH_SIZE = 1024
+NUM_EPOCHS = 10
 LEARNING_RATE = 1e-4
-PATIENCE = 3  # Early stopping の許容エポック数
+PATIENCE = 5  # Early stopping の許容エポック数
 
 # モデルとトークナイザの読み込み
 tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_PATH)
@@ -62,18 +62,11 @@ best_loss = float("inf")
 patience_counter = 0
 
 # 学習設定
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
 
 device = torch.device("cuda")
 model.to(device)
 model.train()
-
-best_loss = float("inf")
-patience_counter = 0
-
-# Early Stoppingの初期化
-best_loss = float("inf")
-patience_counter = 0
 
 # 学習ループ
 for epoch in range(NUM_EPOCHS):
@@ -119,6 +112,6 @@ for epoch in range(NUM_EPOCHS):
     # 学習率スケジューラーで学習率を更新
     scheduler.step(epoch_loss)
 
-	# モデルの保存
-	model.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
-	tokenizer.save_pretrained("lora_finetuned_model_epoch"+str(epoch)")
+# モデルの保存
+model.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
+tokenizer.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
