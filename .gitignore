@@ -7,3 +7,6 @@ resource/
 
 !test.json
 *.json
+
+*.safetensors
+llm/haiku_dataset.txt
