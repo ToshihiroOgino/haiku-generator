@@ -28,3 +28,7 @@ func (r Reading) String() string {
 func (s Surface) Length() int {
 	return utf8.RuneCountInString(s.String())
 }
+
+func (r Reading) Length() int {
+	return utf8.RuneCountInString(r.String())
+}
