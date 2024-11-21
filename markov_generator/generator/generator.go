@@ -1,15 +1,22 @@
 package generator
 
 import (
-	"fmt"
 	"markov_generator/domain"
 	"markov_generator/mecab"
 	"markov_generator/stats"
 	"math/rand"
 	"sort"
+
+	"github.com/gookit/slog"
 )
 
-func GenerateFromBegin(corpus *stats.Corpus) domain.Uta {
+type GeneratedUta struct {
+	Uta       domain.Uta
+	Reading   string
+	UtaLength int
+}
+
+func GenerateFromBegin(corpus *stats.Corpus) GeneratedUta {
 	uta := ""
 	prevID := corpus.Bos.ID
 	length := 0
@@ -26,11 +33,10 @@ func GenerateFromBegin(corpus *stats.Corpus) domain.Uta {
 		prevID = nextID
 		// slog.Debug("uta", uta)
 	}
-	uta = fmt.Sprintf("%s (%s %d音)", uta, utaReading, length)
-	return domain.Uta(uta)
+	return GeneratedUta{domain.Uta(uta), utaReading, length}
 }
 
-func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kigo) domain.Uta {
+func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kigo, instance *mecab.MeCab) GeneratedUta {
 	// 季語を埋め込む位置の候補を探索
 	kigoPos := -1
 	for _, kigoInfoArr := range kigoStat.Individual {
@@ -45,8 +51,6 @@ func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kig
 		}
 	}
 
-	instance := mecab.CreateInstance()
-	defer instance.Close()
 	utaMorphemeArr := instance.Exec(string(kigo))
 	kigoLength := 0
 	for _, m := range utaMorphemeArr {
@@ -58,9 +62,11 @@ func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kig
 		// 候補1 ランダム
 		// 12は俳句の5_7_5の前半2つ(5_7)と最後の節の頭までの間に俳句を生成するための最大の文字数
 		// kigoPos = rand.Intn(12)
+
 		// 候補2 全体平均±誤差2
 		// 4はデータセット全体の平均位置(kigoStat.TotalAverage)の整数部分
 		// kigoPos = 4 + rand.Intn(5) - 2
+
 		// 候補3 各節の冒頭のいづれか
 		posCandidate := [3]int{0, 5, 12}
 		r := rand.Intn(len(posCandidate))
@@ -79,9 +85,11 @@ func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kig
 		// 超過する候補
 		ngCandidates := []*domain.Morpheme{}
 		for retryCount := 0; retryCount < MAX_RETRY; retryCount++ {
-			id := generateNext(c, nextID)
+			id := generatePrev(c, nextID)
 			b := c.GetMorphemeFromID(id)
-			if wantLength-b.Reading.Length() >= 0 {
+			if id == c.Eos.ID || id == c.Bos.ID {
+				continue
+			} else if wantLength-b.Reading.Length() >= 0 {
 				okCandidates = append(okCandidates, b)
 			} else {
 				ngCandidates = append(ngCandidates, b)
@@ -89,7 +97,9 @@ func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kig
 		}
 
 		var m *domain.Morpheme
-		if len(okCandidates) > 0 {
+		if len(okCandidates) == 0 && len(ngCandidates) == 0 {
+			break
+		} else if len(okCandidates) > 0 {
 			// 超過しない候補があればそれを選択
 			idx := rand.Intn(len(okCandidates))
 			m = okCandidates[idx]
@@ -114,14 +124,19 @@ func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kig
 		for retryCount := 0; retryCount < MAX_RETRY; retryCount++ {
 			id := generateNext(c, prevID)
 			b := c.GetMorphemeFromID(id)
-			if wantLength-b.Reading.Length() >= 0 {
+			if id == c.Eos.ID || id == c.Bos.ID {
+				continue
+			} else if wantLength-b.Reading.Length() >= 0 {
 				okCandidates = append(okCandidates, b)
 			} else {
 				ngCandidates = append(ngCandidates, b)
 			}
 		}
+
 		var m *domain.Morpheme
-		if len(okCandidates) > 0 {
+		if len(okCandidates) == 0 && len(ngCandidates) == 0 {
+			break
+		} else if len(okCandidates) > 0 {
 			// 超過しない候補があればそれを選択
 			idx := rand.Intn(len(okCandidates))
 			m = okCandidates[idx]
@@ -145,11 +160,15 @@ func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kig
 		reading += m.Reading.String()
 		utaLength += m.Reading.Length()
 	}
-	return domain.Uta(fmt.Sprintf("%s (%s %d音)", uta, reading, utaLength))
+	return GeneratedUta{domain.Uta(uta), reading, utaLength}
 }
 
 func generateNext(c *stats.Corpus, prevID stats.VocabID) stats.VocabID {
 	prev := c.GetVocabularyFromID(prevID)
+	if prev == nil {
+		slog.Warn("prev is nil", "prevID", prevID)
+		return c.Eos.ID
+	}
 	arr := make([]int, len(prev.Next))
 	randMax := 0
 	idx := 0
@@ -178,6 +197,10 @@ func generateNext(c *stats.Corpus, prevID stats.VocabID) stats.VocabID {
 
 func generatePrev(c *stats.Corpus, nextID stats.VocabID) stats.VocabID {
 	next := c.GetVocabularyFromID(nextID)
+	if next == nil {
+		slog.Warn("next is nil", "nextID", nextID)
+		return c.Bos.ID
+	}
 	arr := make([]int, len(next.Prev))
 	randMax := 0
 	idx := 0

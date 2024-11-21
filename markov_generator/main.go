@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
+	"markov_generator/domain"
 	"markov_generator/fileio"
 	"markov_generator/generator"
 	"markov_generator/mecab"
+	"markov_generator/stats"
 	"math/rand"
 	"sort"
 	"strings"
@@ -41,33 +44,33 @@ func fn2() {
 func vocabList() {
 	data, err := fileio.LoadHaikuData("./fileio/haiku.json")
 	if err != nil {
-		panic(err)
+		slog.FatalErr(err)
 	}
 	vocab := data.ParseAll()
 	err = fileio.SaveVocabularySet("./fileio/vocab.json", vocab)
 	if err != nil {
-		panic(err)
+		slog.FatalErr(err)
 	}
 }
 
 func corpus() {
 	if data, err := fileio.LoadHaikuData("./fileio/haiku.json"); err != nil {
-		panic(err)
+		slog.FatalErr(err)
 	} else {
 		corpus := data.CreateCorpus()
 		if err := fileio.SaveCorpus("./fileio/corpus.json", corpus); err != nil {
-			panic(err)
+			slog.FatalErr(err)
 		}
 	}
 }
 
 func kigoStat() {
 	if data, err := fileio.LoadHaikuData("./fileio/haiku.json"); err != nil {
-		panic(err)
+		slog.FatalErr(err)
 	} else {
 		s := data.KigoAnalyze()
 		if err := fileio.SaveKigoStat("./fileio/kigo_stat.json", s); err != nil {
-			panic(err)
+			slog.FatalErr(err)
 		}
 	}
 }
@@ -92,42 +95,32 @@ func utaFromKigo() {
 	if err != nil {
 		slog.FatalErr(err)
 	}
-	for i := 0; i < 5; i++ {
-		uta := generator.GenerateFromKigo(corpus, kigoStat, "冬田")
-		slog.Debug("uta", uta)
-	}
-}
 
-func bin() {
-	src := make([]int, 10)
-	for i := 0; i < 10; i++ {
-		src[i] = rand.Intn(30)
-	}
-	slog.Debug("src", src)
+	kigoList := []domain.Kigo{"蟻", "啓蟄", "花野", "苗代", "藤", "大寒", "花", "八月", "八月", "炎天"}
 
-	arr := make([]int, len(src))
-	randMax := 0
-	idx := 0
-	for count := range src {
-		randMax += count
-		arr[idx] = randMax
-		idx++
-	}
-	// rand := rand.Intn(randMax)
-	rand := randMax
-	slog.Debug("arr", arr)
-	slog.Debug("randMax", randMax)
-	slog.Debug("rand", rand)
-	idx = sort.Search(len(arr), func(i int) bool {
-		return arr[i] >= rand
-	})
+	slog.Debug("kigoList", kigoList, "len(kigoList)", len(kigoList))
+	rand.NewSource(0)
+	generated := make(stats.HaikuData)
+	season := domain.Season("Unknown")
+	generated[season] = make(map[domain.Kigo]([]domain.Uta))
 
-	slog.Debug("idx", idx)
+	instance := mecab.CreateInstance()
+	defer instance.Close()
+
+	for _, kigo := range kigoList {
+		slog.Infof("----- 季語: %s -----", kigo)
+		generated[season][kigo] = []domain.Uta{}
+		for i := 0; i < 5; i++ {
+			uta := generator.GenerateFromKigo(corpus, kigoStat, kigo, instance)
+			slog.Debug("uta", uta)
+			generated[season][kigo] = append(generated[season][kigo], uta.Uta)
+		}
+	}
 }
 
 func small() {
 	if data, err := fileio.LoadHaikuData("./fileio/small.json"); err != nil {
-		panic(err)
+		slog.FatalErr(err)
 	} else {
 		corpus := data.CreateCorpus()
 		// slog.Debug("corpus", corpus)
@@ -137,6 +130,42 @@ func small() {
 	}
 }
 
+func kigoStatAnalysis() {
+	kigoStat, err := fileio.LoadKigoStat("./fileio/kigo_stat.json")
+	if err != nil {
+		slog.FatalErr(err)
+	}
+	allInfo := []*stats.KigoInfo{}
+	for _, infoList := range kigoStat.Individual {
+		allInfo = append(allInfo, infoList...)
+	}
+	slog.Debug("len(allInfo)", len(allInfo))
+	sort.Slice(allInfo, func(i, j int) bool {
+		return allInfo[i].NumHaiku >= allInfo[j].NumHaiku
+	})
+	bytes, _ := json.MarshalIndent(allInfo[:15], "", "  ")
+	slog.Debug("top", string(bytes))
+}
+
+func generateALot() {
+	corpus, err := fileio.LoadCorpus("./fileio/corpus.json")
+	if err != nil {
+		slog.FatalErr(err)
+	}
+	kigoStat, err := fileio.LoadKigoStat("./fileio/kigo_stat.json")
+	if err != nil {
+		slog.FatalErr(err)
+	}
+
+	data := generator.GenerateALot(corpus, kigoStat)
+
+	if err := fileio.SaveGeneratedHaiku("./fileio/generated.json", data); err != nil {
+		slog.FatalErr(err)
+	}
+}
+
 func main() {
-	utaFromKigo()
+	// kigoStatAnalysis()
+	generateALot()
+	// corpus()
 }
