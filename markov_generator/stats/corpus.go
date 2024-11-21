@@ -38,6 +38,9 @@ func (c *Corpus) InsertMorpheme(m *domain.Morpheme) *Vocabulary {
 }
 
 func (c *Corpus) GetMorphemeFromID(id VocabID) *domain.Morpheme {
+	if id < 0 || id >= VocabID(len(c.MorphemeList)) {
+		return nil
+	}
 	return c.MorphemeList[id]
 }
 
@@ -50,6 +53,9 @@ func (c *Corpus) GetIDFromMorpheme(m *domain.Morpheme) VocabID {
 }
 
 func (c *Corpus) GetVocabularyFromID(id VocabID) *Vocabulary {
+	if id < 0 || id >= VocabID(len(c.MorphemeList)) {
+		return nil
+	}
 	return c.VocabularySet[*c.GetMorphemeFromID(id)]
 }
 
