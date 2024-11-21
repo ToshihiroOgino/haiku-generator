@@ -157,7 +157,7 @@ func generateALot() {
 		slog.FatalErr(err)
 	}
 
-	data := generator.GenerateALot(corpus, kigoStat)
+	data := generator.BulkGenerate(corpus, kigoStat)
 
 	if err := fileio.SaveGeneratedHaiku("./fileio/generated.json", data); err != nil {
 		slog.FatalErr(err)

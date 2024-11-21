@@ -12,7 +12,7 @@ import (
 
 type GeneratedHaikuData map[string](map[domain.Kigo]([]domain.Uta))
 
-func GenerateALot(corpus *stats.Corpus, kigoStat *stats.KigoStat) GeneratedHaikuData {
+func BulkGenerate(corpus *stats.Corpus, kigoStat *stats.KigoStat) GeneratedHaikuData {
 	rand.NewSource(0)
 
 	allInfo := []*stats.KigoInfo{}
