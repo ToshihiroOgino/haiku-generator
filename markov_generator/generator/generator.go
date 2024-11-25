@@ -38,15 +38,15 @@ func GenerateFromBegin(corpus *stats.Corpus) GeneratedUta {
 
 func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kigo, instance *mecab.MeCab) GeneratedUta {
 	// 季語を埋め込む位置の候補を探索
-	kigoPos := -1
+	averageKigoPos := -1
 	for _, kigoInfoArr := range kigoStat.Individual {
 		for _, info := range kigoInfoArr {
 			if info.Kigo == kigo {
-				kigoPos = int(info.AveragePos)
+				averageKigoPos = int(info.AveragePos)
 				break
 			}
 		}
-		if kigoPos != -1 {
+		if averageKigoPos != -1 {
 			break
 		}
 	}
@@ -56,6 +56,10 @@ func GenerateFromKigo(c *stats.Corpus, kigoStat *stats.KigoStat, kigo domain.Kig
 	for _, m := range utaMorphemeArr {
 		kigoLength += m.Reading.Length()
 	}
+
+	posCandidate := [4]int{0, 5, 12, averageKigoPos}
+	r := rand.Intn(len(posCandidate))
+	kigoPos := posCandidate[r]
 
 	// 5+7+5-kigoLength は季語が17音の俳句に埋め込まれる場合の最大の文字数
 	if kigoPos < -1 || kigoPos >= 5+7+5-kigoLength {
