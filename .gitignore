@@ -7,3 +7,7 @@ resource/
 
 !test.json
 *.json
+
+*.safetensors
+llm/haiku_dataset.txt
+llm/lora_finetuned_model_epoch*/*
