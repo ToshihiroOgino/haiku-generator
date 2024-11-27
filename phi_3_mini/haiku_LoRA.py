@@ -6,7 +6,12 @@ from peft import LoraConfig
 import torch
 import transformers
 from trl import SFTTrainer
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, BitsAndBytesConfig
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    TrainingArguments,
+    BitsAndBytesConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +38,10 @@ training_config = {
     "save_total_limit": 1,
     "seed": 0,
     "gradient_checkpointing": True,
-    "gradient_checkpointing_kwargs":{"use_reentrant": False},
+    "gradient_checkpointing_kwargs": {"use_reentrant": False},
     "gradient_accumulation_steps": 1,
     "warmup_ratio": 0.2,
-    }
+}
 
 peft_config = {
     "r": 16,
@@ -85,14 +90,16 @@ model_kwargs = dict(
     trust_remote_code=True,
     attn_implementation="flash_attention_2",  # loading the model with flash-attenstion support
     torch_dtype=torch.bfloat16,
-    device_map=None
+    device_map=None,
 )
 model = AutoModelForCausalLM.from_pretrained(checkpoint_path, **model_kwargs)
 tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
 tokenizer.model_max_length = 2048
-tokenizer.pad_token = tokenizer.unk_token  # use unk rather than eos token to prevent endless generation
+tokenizer.pad_token = (
+    tokenizer.unk_token
+)  # use unk rather than eos token to prevent endless generation
 tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids(tokenizer.pad_token)
-tokenizer.padding_side = 'right'
+tokenizer.padding_side = "right"
 
 
 ##################
@@ -104,10 +111,12 @@ def apply_chat_template(
 ):
     messages = example["messages"]
     example["text"] = tokenizer.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=False)
+        messages, tokenize=False, add_generation_prompt=False
+    )
     return example
 
-raw_dataset = load_dataset("json",data_files="haiku_data.json",split="train")
+
+raw_dataset = load_dataset("json", data_files="haiku_data.json", split="train")
 train_dataset = raw_dataset
 column_names = list(train_dataset.features)
 
@@ -130,7 +139,7 @@ trainer = SFTTrainer(
     max_seq_length=2048,
     dataset_text_field="text",
     tokenizer=tokenizer,
-    packing=True
+    packing=True,
 )
 train_result = trainer.train()
 metrics = train_result.metrics
