@@ -16,7 +16,11 @@ PATIENCE = 2  # Early stopping の許容エポック数
 
 # モデルとトークナイザの読み込み
 tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_PATH)
-model = AutoModelForCausalLM.from_pretrained(LOCAL_MODEL_PATH, quantization_config=BitsAndBytesConfig(load_in_8bit=True), device_map="auto")
+model = AutoModelForCausalLM.from_pretrained(
+    LOCAL_MODEL_PATH,
+    quantization_config=BitsAndBytesConfig(load_in_8bit=True),
+    device_map="auto",
+)
 
 # LoRA の設定
 lora_config = LoraConfig(
@@ -25,36 +29,40 @@ lora_config = LoraConfig(
     lora_alpha=32,
     target_modules=["q_proj", "v_proj"],
     lora_dropout=0.05,
-    bias="none"
+    bias="none",
 )
 model = get_peft_model(model, lora_config)
 
 # データセットのロード
-dataset = load_dataset("text", data_files={"train": "haiku_dataset.txt"})  # テキスト形式のデータセット
+dataset = load_dataset(
+    "text", data_files={"train": "haiku_dataset.txt"}
+)  # テキスト形式のデータセット
 train_data = dataset["train"]
 
 # 最適化設定
 optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=0.01)
 
 # 学習率スケジューラー（Lossが停滞した場合に学習率を減少）
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
+scheduler = ReduceLROnPlateau(
+    optimizer, mode="min", factor=0.1, patience=10, verbose=True
+)
+
 
 # トークン化関数
 def tokenize_function(examples):
     return tokenizer(
-        examples["text"], 
+        examples["text"],
         padding="max_length",
         truncation=True,
-        max_length=128  # 必要に応じて調整
+        max_length=128,  # 必要に応じて調整
     )
+
 
 tokenized_dataset = train_data.map(tokenize_function, batched=True)
 
 # データローダーの作成
 train_dataloader = torch.utils.data.DataLoader(
-    tokenized_dataset,
-    batch_size=BATCH_SIZE,
-    shuffle=True
+    tokenized_dataset, batch_size=BATCH_SIZE, shuffle=True
 )
 
 # Early Stoppingの初期化
@@ -86,10 +94,10 @@ for epoch in range(NUM_EPOCHS):
         loss.backward()  # 勾配計算
         optimizer.step()  # パラメータ更新
         optimizer.zero_grad()  # 勾配のリセット
-        
+
         # 1ステップごとにLossを表示
         print(f"Epoch {epoch}, Step {step}, Loss: {loss.item()}")
-            
+
         # エポックごとの損失の集計
         epoch_loss += loss.item()
 
@@ -102,7 +110,7 @@ for epoch in range(NUM_EPOCHS):
         patience_counter = 0
     else:
         patience_counter += 1
-    
+
     # Early Stopping の判断
     if patience_counter >= PATIENCE:
         print("Early stopping triggered")
@@ -112,5 +120,5 @@ for epoch in range(NUM_EPOCHS):
     scheduler.step(epoch_loss)
 
     # モデルの保存
-    model.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
-    tokenizer.save_pretrained("lora_finetuned_model_epoch"+str(epoch))
+    model.save_pretrained("lora_finetuned_model_epoch" + str(epoch))
+    tokenizer.save_pretrained("lora_finetuned_model_epoch" + str(epoch))
