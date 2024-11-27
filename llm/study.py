@@ -12,7 +12,7 @@ LOCAL_MODEL_PATH = "./elyza_model"
 BATCH_SIZE = 16
 NUM_EPOCHS = 10
 LEARNING_RATE = 1e-4
-PATIENCE = 1  # Early stopping の許容エポック数
+PATIENCE = 2  # Early stopping の許容エポック数
 
 # モデルとトークナイザの読み込み
 tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_PATH)
