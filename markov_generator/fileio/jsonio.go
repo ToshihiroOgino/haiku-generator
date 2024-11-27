@@ -2,6 +2,7 @@ package fileio
 
 import (
 	"encoding/json"
+	"markov_generator/generator"
 	"markov_generator/stats"
 	"os"
 
@@ -99,5 +100,40 @@ func SaveKigoStat(path string, kigoStat *stats.KigoStat) error {
 	}
 	slog.Info("kigo stat saved")
 
+	return nil
+}
+
+func LoadKigoStat(path string) (*stats.KigoStat, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	slog.Info("reading kigo stat from " + path)
+	decoder := json.NewDecoder(file)
+	var res stats.KigoStat
+	err = decoder.Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+	slog.Info("kigo stat loaded")
+	return &res, nil
+}
+
+func SaveGeneratedHaiku(path string, haikuData generator.GeneratedHaikuData) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	slog.Info("saving haiku data to " + path)
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "\t")
+	err = encoder.Encode(haikuData)
+	if err != nil {
+		return err
+	}
+	slog.Info("haiku data saved")
 	return nil
 }
