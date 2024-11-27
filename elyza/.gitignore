@@ -1,0 +1,3 @@
+*.txt
+lora_finetuned_model_epoch*/
+*.safetensors
